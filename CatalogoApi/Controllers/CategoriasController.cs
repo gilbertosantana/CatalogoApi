@@ -20,8 +20,15 @@ namespace CatalogoApi.Controllers
         [HttpGet("produtos")]
         public ActionResult<IEnumerable<Categoria>> GetCategoriaProdutos()
         {
-            return _uow.CategoriaRepository.GetCategoriasProdutos().ToList();
-            //return _context.Categorias!.Include(p => p.Produtos).Where(c => c.CategoriaId < 5).AsNoTracking().ToList();
+            try
+            {
+                return _uow.CategoriaRepository.GetCategoriasProdutos().ToList();
+                //return _context.Categorias!.Include(p => p.Produtos).Where(c => c.CategoriaId < 5).AsNoTracking().ToList();
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Ocorreu um problema ao tratar a sua solicitação");
+            }
         }
 
         [HttpGet]
@@ -86,7 +93,7 @@ namespace CatalogoApi.Controllers
                 return BadRequest("Dados inválidos");
             }
 
-            _uow.CategoriaRepository.Add(categoria);
+            _uow.CategoriaRepository.Update(categoria);
             _uow.Commit();
             return Ok(categoria);
         }

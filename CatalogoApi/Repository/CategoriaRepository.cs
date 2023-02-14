@@ -11,7 +11,7 @@ namespace CatalogoApi.Repository
         }        
         public IEnumerable<Categoria> GetCategoriasProdutos()
         {
-            return Get().Include(p => p.Produtos).ToList();
+            return Get().Include(p => p.Produtos);
         }
     }
 }
