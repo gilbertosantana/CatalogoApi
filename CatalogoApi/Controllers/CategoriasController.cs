@@ -1,34 +1,35 @@
 ﻿using CatalogoApi.Context;
 using CatalogoApi.Models;
+using CatalogoApi.Repository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CatalogoApi.Controllers
 {
-    [Route("[controller]")]
+    [Route("api/[Controller]")]
     [ApiController]
     public class CategoriasController : ControllerBase
     {
-        public readonly CatalogoApiContext _context;
+        public readonly IUnitOfWork _uow;
 
-        public CategoriasController(CatalogoApiContext context)
+        public CategoriasController(IUnitOfWork context)
         {
-            _context = context;
+            _uow = context;
         }
 
         [HttpGet("produtos")]
-        public async Task<ActionResult<IEnumerable<Categoria>>> GetCategoriaProdutos()
+        public ActionResult<IEnumerable<Categoria>> GetCategoriaProdutos()
         {
-            return await _context.Categorias!.Include(p => p.Produtos).AsNoTracking().ToListAsync();
+            return _uow.CategoriaRepository.GetCategoriasProdutos().ToList();
             //return _context.Categorias!.Include(p => p.Produtos).Where(c => c.CategoriaId < 5).AsNoTracking().ToList();
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Categoria>>> Get()
+        public ActionResult<IEnumerable<Categoria>> Get()
         {
             try
             {
-                var categorias = await _context.Categorias!.AsNoTracking().ToListAsync();
+                var categorias = _uow.CategoriaRepository.Get().ToList();
 
                 if (categorias is null)
                 {
@@ -44,11 +45,11 @@ namespace CatalogoApi.Controllers
         }
 
         [HttpGet("{id:int}", Name = "ObterCategoria")]
-        public async Task<ActionResult<Categoria>> Get(int id)
+        public ActionResult<Categoria> Get(int id)
         {
             try
             {
-                var categoria = await _context.Categorias!.AsNoTracking().FirstOrDefaultAsync(c => c.CategoriaId == id);
+                var categoria = _uow.CategoriaRepository.GetById(p => p.CategoriaId == id);
 
                 if (categoria == null)
                 {
@@ -64,42 +65,42 @@ namespace CatalogoApi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> Post(Categoria categoria)
+        public ActionResult Post(Categoria categoria)
         {
             if (categoria is null)
             {
                 return BadRequest("Dados inválidos");
             }
 
-            _context.Categorias!.Add(categoria);
-            await _context.SaveChangesAsync();
+            _uow.CategoriaRepository.Add(categoria);
+            _uow.Commit();
 
             return new CreatedAtRouteResult("ObterCategoria", new { id = categoria.CategoriaId }, categoria);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, Categoria categoria)
+        public ActionResult Put(int id, Categoria categoria)
         {
             if (id != categoria.CategoriaId)
             {
                 return BadRequest("Dados inválidos");
             }
 
-            _context.Entry(categoria).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            _uow.CategoriaRepository.Add(categoria);
+            _uow.Commit();
             return Ok(categoria);
         }
 
         [HttpDelete("{id:int}")]
-        public async Task<ActionResult<Categoria>> Delete(int id)
+        public ActionResult<Categoria> Delete(int id)
         {
-            var categoria = await _context.Categorias!.FirstOrDefaultAsync(c => c.CategoriaId == id);
+            var categoria = _uow.CategoriaRepository.GetById(c => c.CategoriaId == id);
             if (categoria == null)
             {
                 return NotFound($"Categoria com o id={id} não encontrada...");
             }
-            _context.Categorias!.Remove(categoria);
-            await _context.SaveChangesAsync();
+            _uow.CategoriaRepository.Delete(categoria);
+            _uow.Commit();
 
             return Ok(categoria);
         }

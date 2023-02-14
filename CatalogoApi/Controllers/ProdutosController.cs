@@ -1,39 +1,45 @@
 ﻿using CatalogoApi.Context;
 using CatalogoApi.Models;
-using Microsoft.AspNetCore.Http;
+using CatalogoApi.Repository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CatalogoApi.Controllers
 {
-    [Route("[controller]")]
+    [Route("api/[Controller]")]
     [ApiController]
     public class ProdutosController : ControllerBase
     {
-        public readonly CatalogoApiContext _context;
+        public readonly IUnitOfWork _uow;
 
-        public ProdutosController(CatalogoApiContext context)
+        public ProdutosController(IUnitOfWork context)
         {
-            _context = context;
+            _uow = context;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Produto>>> Get()
+        public ActionResult<IEnumerable<Produto>> Get()
         {
-            var produtos = await _context.Produtos!.ToListAsync();
+            var produtos = _uow.ProdutoRepository.Get().ToList();
+
             if (produtos is null)
             {
                 return NotFound("Produtos não encontrados...");
             }
             return produtos;
         }
-
-        [HttpGet("{id:int}", Name ="ObterProduto")]
-        public async Task<ActionResult<Produto>> Get(int? id) 
+        [HttpGet("menorpreco")]
+        public ActionResult<IEnumerable<Produto>> GetProdutosPrecos()
         {
-            var produto = await _context.Produtos!.FirstOrDefaultAsync(x => x.ProdutoId == id);
+            return _uow.ProdutoRepository.GetProdutosPorPreco().ToList();
+        }
 
-            if(produto == null)
+        [HttpGet("{id:int}", Name = "ObterProduto")]
+        public ActionResult<Produto> Get(int? id)
+        {
+            var produto = _uow.ProdutoRepository.GetById(p => p.ProdutoId == id);
+
+            if (produto == null)
             {
                 return NotFound("Produto não encontrado...");
             }
@@ -41,41 +47,43 @@ namespace CatalogoApi.Controllers
             return produto;
         }
         [HttpPost]
-        public async Task<ActionResult> Post(Produto produto)
+        public ActionResult Post(Produto produto)
         {
-            if(produto is null)
+            if (produto is null)
             {
                 return BadRequest();
             }
-            _context.Produtos?.Add(produto);
-            await _context.SaveChangesAsync();
-            return new CreatedAtRouteResult("ObterProduto", new { id = produto.ProdutoId, produto});
+            _uow.ProdutoRepository.Add(produto);
+            _uow.Commit();
+
+            return new CreatedAtRouteResult("ObterProduto", new { id = produto.ProdutoId, produto });
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, Produto produto)
+        public ActionResult Put(int id, Produto produto)
         {
-            if(id != produto.ProdutoId)
+            if (id != produto.ProdutoId)
             {
                 return BadRequest();
             }
-            _context.Entry(produto).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            await _context.SaveChangesAsync();
+            _uow.ProdutoRepository.Update(produto);
+            _uow.Commit();
 
-            return Ok(produto);
+            return Ok();
         }
 
         [HttpDelete("{id:int}")]
-        public async Task<ActionResult> Delete(int id)
+        public ActionResult Delete(int id)
         {
-            var produto = await _context.Produtos!.FirstOrDefaultAsync(x => x.ProdutoId == id);
-            if(produto is null)
+            var produto = _uow.ProdutoRepository.GetById(p => p.ProdutoId == id);
+
+            if (produto is null)
             {
                 return NotFound("Produto não localizado...");
             }
 
-            _context.Produtos!.Remove(produto);
-            await _context.SaveChangesAsync();
+            _uow.ProdutoRepository.Delete(produto);
+            _uow.Commit();
 
             return Ok(produto);
         }
