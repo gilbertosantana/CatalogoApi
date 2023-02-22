@@ -1,4 +1,6 @@
+using AutoMapper;
 using CatalogoApi.Context;
+using CatalogoApi.DTOs.Mappins;
 using CatalogoApi.Repository;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
@@ -7,7 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+builder.Services.AddControllers()
+    .AddJsonOptions(options => 
+        options.JsonSerializerOptions
+            .ReferenceHandler = ReferenceHandler.IgnoreCycles);
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -19,6 +25,14 @@ builder.Services.AddDbContext<CatalogoApiContext>(options =>
                     ServerVersion.AutoDetect(mySqlConnection)));
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+var mappingConfigure = new MapperConfiguration(mc =>
+{
+    mc.AddProfile(new MappingProfile());
+});
+
+IMapper mapper = mappingConfigure.CreateMapper();
+builder.Services.AddSingleton(mapper);
 
 var app = builder.Build();
 
