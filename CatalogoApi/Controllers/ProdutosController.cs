@@ -1,8 +1,8 @@
-﻿using CatalogoApi.Context;
+﻿using AutoMapper;
+using CatalogoApi.DTOs;
 using CatalogoApi.Models;
 using CatalogoApi.Repository;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CatalogoApi.Controllers
 {
@@ -10,62 +10,74 @@ namespace CatalogoApi.Controllers
     [ApiController]
     public class ProdutosController : ControllerBase
     {
-        public readonly IUnitOfWork _uow;
+        private readonly IUnitOfWork _uow;
+        private readonly IMapper _mapper;
 
-        public ProdutosController(IUnitOfWork context)
+
+        public ProdutosController(IUnitOfWork context, IMapper mapper)
         {
             _uow = context;
+            _mapper = mapper;
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Produto>> Get()
+        public ActionResult<IEnumerable<ProdutoDTO>> Get()
         {
             var produtos = _uow.ProdutoRepository.Get().ToList();
+            var produtosDto = _mapper.Map<List<ProdutoDTO>>(produtos);
 
             if (produtos is null)
             {
                 return NotFound("Produtos não encontrados...");
             }
-            return produtos;
+            return produtosDto;
         }
         [HttpGet("menorpreco")]
-        public ActionResult<IEnumerable<Produto>> GetProdutosPrecos()
+        public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosPrecos()
         {
-            return _uow.ProdutoRepository.GetProdutosPorPreco().ToList();
+            var produtos =_uow.ProdutoRepository.GetProdutosPorPreco().ToList();
+            var produtosDto = _mapper.Map<List<ProdutoDTO>>(produtos);
+            return produtosDto;
         }
 
         [HttpGet("{id:int}", Name = "ObterProduto")]
-        public ActionResult<Produto> Get(int? id)
+        public ActionResult<ProdutoDTO> Get(int? id)
         {
-            var produto = _uow.ProdutoRepository.GetById(p => p.ProdutoId == id);
+            var produto = _uow
+                .ProdutoRepository
+                .GetById(p => p.ProdutoId == id);
 
             if (produto == null)
             {
                 return NotFound("Produto não encontrado...");
             }
-
-            return produto;
+            var produtoDTO = _mapper.Map<ProdutoDTO>(produto);
+            return produtoDTO;
         }
         [HttpPost]
-        public ActionResult Post(Produto produto)
+        public ActionResult Post([FromBody]ProdutoDTO produtoDto)
         {
-            if (produto is null)
+            if (produtoDto is null)
             {
                 return BadRequest();
             }
+            var produto = _mapper.Map<Produto>(produtoDto);
             _uow.ProdutoRepository.Add(produto);
             _uow.Commit();
 
-            return new CreatedAtRouteResult("ObterProduto", new { id = produto.ProdutoId, produto });
+            var produtoDTO = _mapper.Map<ProdutoDTO>(produto);
+
+            return new CreatedAtRouteResult("ObterProduto", new { id = produto.ProdutoId, produtoDTO });
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult Put(int id, Produto produto)
+        public ActionResult Put(int id, [FromBody] ProdutoDTO produtoDto)
         {
-            if (id != produto.ProdutoId)
+            if (id != produtoDto.ProdutoId)
             {
                 return BadRequest();
             }
+            var produto = _mapper.Map<Produto>(produtoDto);
             _uow.ProdutoRepository.Update(produto);
             _uow.Commit();
 
@@ -73,7 +85,7 @@ namespace CatalogoApi.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        public ActionResult Delete(int id)
+        public ActionResult<ProdutoDTO> Delete(int id)
         {
             var produto = _uow.ProdutoRepository.GetById(p => p.ProdutoId == id);
 
@@ -84,8 +96,10 @@ namespace CatalogoApi.Controllers
 
             _uow.ProdutoRepository.Delete(produto);
             _uow.Commit();
+            
+            var produtoDto = _mapper.Map<ProdutoDTO>(produto);
 
-            return Ok(produto);
+            return Ok(produtoDto);
         }
     }
 }
