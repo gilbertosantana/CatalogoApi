@@ -93,8 +93,10 @@ namespace CatalogoApi.Controllers
             _uow.CategoriaRepository.Add(categoria);
             _uow.Commit();
 
+            var categoriaDTO = _mapper.Map<CategoriaDTO>(categoria);
+
             return new CreatedAtRouteResult("ObterCategoria",
-                new { id = categoria.CategoriaId }, categoria);
+                new { id = categoria.CategoriaId }, categoriaDTO);
         }
 
         [HttpPut("{id:int}")]
