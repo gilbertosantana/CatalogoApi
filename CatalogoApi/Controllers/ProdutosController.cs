@@ -4,6 +4,7 @@ using CatalogoApi.Models;
 using CatalogoApi.Pagination;
 using CatalogoApi.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace CatalogoApi.Controllers
 {
@@ -22,9 +23,22 @@ namespace CatalogoApi.Controllers
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery]ProdutosParameters produtosParameters)
+        public ActionResult<IEnumerable<ProdutoDTO>> Get([FromQuery] ProdutosParameters produtosParameters)
         {
-            var produtos = _uow.ProdutoRepository.GetProdutos(produtosParameters).ToList();
+            var produtos = _uow.ProdutoRepository.GetProdutos(produtosParameters);
+
+            var metadata = new
+            {
+                produtos.TotalCount,
+                produtos.PageSize,
+                produtos.CurrentPage,
+                produtos.TotalPages,
+                produtos.HasNext,
+                produtos.HasPrevios
+            };
+
+            Response.Headers.Add("X-Pagination", JsonConvert.SerializeObject(metadata));
+
             var produtosDto = _mapper.Map<List<ProdutoDTO>>(produtos);
 
             if (produtos is null)
@@ -36,7 +50,7 @@ namespace CatalogoApi.Controllers
         [HttpGet("menorpreco")]
         public ActionResult<IEnumerable<ProdutoDTO>> GetProdutosPrecos()
         {
-            var produtos =_uow.ProdutoRepository.GetProdutosPorPreco().ToList();
+            var produtos = _uow.ProdutoRepository.GetProdutosPorPreco().ToList();
             var produtosDto = _mapper.Map<List<ProdutoDTO>>(produtos);
             return produtosDto;
         }
@@ -56,7 +70,7 @@ namespace CatalogoApi.Controllers
             return produtoDTO;
         }
         [HttpPost]
-        public ActionResult Post([FromBody]ProdutoDTO produtoDto)
+        public ActionResult Post([FromBody] ProdutoDTO produtoDto)
         {
             if (produtoDto is null)
             {
@@ -97,7 +111,7 @@ namespace CatalogoApi.Controllers
 
             _uow.ProdutoRepository.Delete(produto);
             _uow.Commit();
-            
+
             var produtoDto = _mapper.Map<ProdutoDTO>(produto);
 
             return Ok(produtoDto);
