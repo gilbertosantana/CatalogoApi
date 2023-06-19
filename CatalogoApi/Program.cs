@@ -2,6 +2,7 @@ using AutoMapper;
 using CatalogoApi.Context;
 using CatalogoApi.DTOs.Mappins;
 using CatalogoApi.Repository;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -24,6 +25,10 @@ builder.Services.AddDbContext<CatalogoApiContext>(options =>
                     options.UseMySql(mySqlConnection,
                     ServerVersion.AutoDetect(mySqlConnection)));
 
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<CatalogoApiContext>()
+    .AddDefaultTokenProviders();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var mappingConfigure = new MapperConfiguration(mc =>
@@ -44,6 +49,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
