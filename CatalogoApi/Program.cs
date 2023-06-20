@@ -2,8 +2,11 @@ using AutoMapper;
 using CatalogoApi.Context;
 using CatalogoApi.DTOs.Mappins;
 using CatalogoApi.Repository;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +31,27 @@ builder.Services.AddDbContext<CatalogoApiContext>(options =>
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<CatalogoApiContext>()
     .AddDefaultTokenProviders();
+
+/* JWT
+ * Adiciona o manipulador de autenticacao e define o
+ * esquema de autenticacao usando : Bearer
+ * valida o emissor, a audiencia e a chave
+ * usando a chave secreta valida a assinatura
+ */
+builder.Services.AddAuthentication(
+    JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options => 
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidAudience = builder.Configuration["TokenConfiguration:Audience"],
+        ValidIssuer = builder.Configuration["TokenConfiguration:Issuer"],
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    });
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
